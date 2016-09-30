@@ -39,7 +39,6 @@ exports.parsing = function(hex) {
     var length = byteToStr(byteArray[5], byteArray[4]);
     var index = byteToStr(byteArray[7], byteArray[6]);
     var command = byteToStr(byteArray[9], byteArray[8]);
-
     var data = '';
     var dataLength = parseInt(length, 16) - 4;
     for(var i=0;i<dataLength;i++) {
@@ -56,6 +55,9 @@ exports.parsing = function(hex) {
 exports.encode = function(sender, receiver, length, index, command, data, checkCode) {
     var byteL = receiver.substr(0, 2);
     var byteH = receiver.substr(2, 2);
+    if(!! data) {
+        data = commandDecoder.trim(data);
+    }
     var command = reverse(sender) + reverse(receiver) + reverse(length) + reverse(index) + reverse(command) + data + reverse(checkCode);
     return commandDecoder.str2Bytes(command);
 };
