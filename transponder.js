@@ -7,7 +7,7 @@ var OnlineClients = require('./OnlineHolder.js');
 var MyProtocol = require('./protocol.js');
 var logger = require('./logger');
 
-var params = {host: "121.40.53.201", port: "3010"};
+var params = {host: "121.40.172.233", port: "3010"};
 var handshakeBuffer = {
 	'sys': {type: 'socket', version: '0.0.1'},
 	'user': {}
@@ -41,22 +41,23 @@ socket.on('data', function (data) {
 		var ipAddress = '';
 		var port = '';
 		var serialno = '';
-		var data = '';
+		data = '';
+		var content = "";
 		for (var i = 0; i < array.length; i++) {
 			if (array[i].indexOf('command') > 0) {
-				var content = array[i].split(":")[1];
+				content = array[i].split(":")[1];
 				command = content.replace("\"", '').replace("\"", '');
 			} else if (array[i].indexOf('ipAddress') > 0) {
-				var content = array[i].split(":")[1];
+				content = array[i].split(":")[1];
 				ipAddress = content.replace("\"", '').replace("\"", '');
 			} else if (array[i].indexOf('port') > 0) {
-				var content = array[i].split(":")[1];
+				content = array[i].split(":")[1];
 				port = content.replace("\"", '').replace("\"", '');
 			} else if (array[i].indexOf('serialNo') > 0) {
-				var content = array[i].split(":")[1];
+				content = array[i].split(":")[1];
 				serialno = content.replace("\"", '').replace("\"", '');
 			} else if (array[i].indexOf('data') > 0) {
-				var content = array[i].split(":")[1];
+				content = array[i].split(":")[1];
 				data = content.replace("\"", '').replace("\"", '');
 			}
 		}
@@ -67,45 +68,27 @@ socket.on('data', function (data) {
 			logger.warn("收到数据:serialno:" + serialno);
 			logger.warn("收到数据:data:" + data);
 		}
-		// 设备状态查询
-		if (command == '2000') {
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			var answerBytes = MyProtocol.encode(client.code, '0000', '0004', '0001', '2000', '', '36FF');
-			client.sock.write(new Buffer(answerBytes));
-		} else if (command == '2001') {
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			var answerBytes = MyProtocol.encode(client.code, '0000', '0004', '0001', '2001', '', '36FF');
-			client.sock.write(new Buffer(answerBytes));
-		} else if (command == '2002') {
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			var answerBytes = MyProtocol.encode(client.code, '0000', '0005', '0001', '2002', data, '36FF');
-			client.sock.write(new Buffer(answerBytes));
-		} else if (command == '2005') {
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			if(!!client) {
-				var answerBytes = MyProtocol.encode(client.code, '0000', '0005', '0001', '2005', data, '36FF');
-				client.sock.write(new Buffer(answerBytes));
-			}
-		} else if (command == '3000') {
-			console.log(ipAddress + "________" + port);
-			OnlineClients.debug();
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			var answerBytes = MyProtocol.encode(client.code, '0000', '0030', '0001', '3000', data, '36FF');
-			client.sock.write(new Buffer(answerBytes));
-		} else if (command == '3007') {
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			data = commandDecoder.trim(data);
-			var answerBytes = MyProtocol.encode(client.code, '0000', '0008', '0001', '3007', data, '36FF');
-			client.sock.write(new Buffer(answerBytes));
-		} else if (command == '3008') {
-			var client = OnlineClients.getByClientId(ipAddress + ":" + port);
-			if(!!client) {
-				OnlineClients.refreshClients();
-				data = commandDecoder.trim(data);
-				var answerBytes = MyProtocol.encode(client.code, '0000', '0007', '0001', '3008', data, '36FF');
-				client.sock.write(new Buffer(answerBytes));
+
+		var client = OnlineClients.getByClientId(ipAddress + ":" + port);
+		if(!!client && client.code) {
+			// 设备状态查询
+			if (command == '2000') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0004', '0001', '2000', '', '36FF')));
+			} else if (command == '2001') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0004', '0001', '2001', '', '36FF')));
+			} else if (command == '2002') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0005', '0001', '2002', data, '36FF')));
+			} else if (command == '2005') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0005', '0001', '2005', data, '36FF')));
+			} else if (command == '3000') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0030', '0001', '3000', data, '36FF')));
+			} else if (command == '3007') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0008', '0001', '3007', data, '36FF')));
+			} else if (command == '3008') {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0007', '0001', '3008', data, '36FF')));
 			}
 		}
+
 	}
 	if (da.type == Package.TYPE_HEARTBEAT) {
 		/**

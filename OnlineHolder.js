@@ -27,7 +27,7 @@ var Client = function (clientId, ipAddress, code, sock) {
 		setSerialno: function (serialno) {
 			pub.serialno = serialno;
 		}
-	}
+	};
 	pub.clientId = clientId;
 	pub.ipAddress = ipAddress;
 	pub.code = code;
@@ -61,12 +61,16 @@ exports.getAll = function() {
  * @returns {boolean}
  */
 exports.exist = function (clientId) {
-	for (var i = 0; i < clients.length; i++) {
-		if (clients[i].clientId === clientId) {
-			return true;
+	if(!!clients && clients.length > 0) {
+		for (var i = 0; i < clients.length; i++) {
+			if (clients[i].clientId === clientId) {
+				return true;
+			}
 		}
+		return false;
+	} else {
+		return false;
 	}
-	return false;
 };
 
 /**
@@ -134,11 +138,14 @@ exports.getBySerialno = function (serialno) {
  * @returns {*}
  */
 exports.getByClientId = function(clientId) {
-	for (var i = 0; i < clients.length; i++) {
-		if (clients[i].clientId === clientId) {
-			return clients[i];
+	if(clients.length > 0) {
+		for (var i = 0; i < clients.length; i++) {
+			if (clients[i].clientId === clientId) {
+				return clients[i];
+			}
 		}
 	}
+	return null;
 };
 
 /**
@@ -150,7 +157,7 @@ exports.send = function (clientId, bytes) {
 	for (var i = 0; i < clients.length; i++) {
 		if (clients[i].clientId === clientId) {
 			var sock = clients[i].sock;
-			if (sock != null) {
+			if (sock !== null) {
 				sock.write(new Buffer(bytes));
 			}
 		}
@@ -164,7 +171,7 @@ exports.send = function (clientId, bytes) {
 exports.sendAll = function (bytes) {
 	for (var i = 0; i < clients.length; i++) {
 		var sock = clients[i].sock;
-		if (sock != null) {
+		if (sock !== null) {
 			sock.write(new Buffer(bytes));
 		}
 	}
@@ -207,19 +214,21 @@ exports.setSerialno = function(clientId, serialno) {
  * @returns {string}
  */
 exports.remove = function (clientId) {
-	var serialno = "";
-	for (var i = 0; i < clients.length; i++) {
-		if (clients[i].clientId === clientId) {
-			serialno = clients[i].serialno;
-			if(!!clients[i].sock) {
-				clients[i].sock.destroy();
-			}
-			if(clients.length > 1) {
-				clients[i].splice(i, 1);
-			} else {
-				clients = [];
+	if(clients.length > 0) {
+		var serialno = "";
+		for (var i = 0; i < clients.length; i++) {
+			if (clients[i].clientId === clientId) {
+				serialno = clients[i].serialno;
+				if(!!clients[i].sock) {
+					clients[i].sock.destroy();
+				}
+				if(clients.length > 1) {
+					clients[i].splice(i, 1);
+				} else {
+					clients = [];
+				}
 			}
 		}
+		return serialno;
 	}
-	return serialno;
 };

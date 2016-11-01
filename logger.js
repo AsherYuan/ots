@@ -15,7 +15,7 @@ var logger = null;
  * @returns {*}
  */
 var getLogger = function () {
-	if (logger == null) {
+	if (logger === null) {
 		logger = log4js.getLogger(path.basename(__filename));
 		return logger;
 	} else {

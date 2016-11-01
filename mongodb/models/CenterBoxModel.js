@@ -7,7 +7,7 @@ var CenterBoxSchema = new mongoose.Schema({
 	code: String,
 	hasConnected: {type: Boolean, default: false},
 	regTime: {type: Date, default: Date.now},
-	lastLoginTime: {type: Date, default: Date.now},
+	lastLoginTime: Date,
 	isOnline: Boolean,
 	temeratureSwitch: String,
 	humiditySwitch: String,
@@ -15,7 +15,8 @@ var CenterBoxSchema = new mongoose.Schema({
 	coSwitch: String,
 	pm25Switch: String,
 	curIpAddress: String,
-	curPort: Number
+	curPort: Number,
+	onlineConfirmed : {type:Boolean, default:false}
 });
 var CenterBoxModel = mongoose.model("centerBox", CenterBoxSchema);
 
@@ -29,9 +30,28 @@ exports.updateIp = function (serialno, ipAddress, port, cb) {
 		}
 	}, function (err, updateResult) {
 		if(err) {
-			console.log(err);
+			cb(err);
+		} else {
+			cb(null);
 		}
-		cb('1');
+	});
+};
+
+exports.updateIpAndCode = function(serialno, code, ipAddress, port, cb) {
+	CenterBoxModel.update({serialno:serialno}, {
+		$set: {
+			curIpAddress: ipAddress,
+			curPort: port,
+			isOnline : true,
+			lastLoginTime: Date.now(),
+			code : code
+		}
+	}, function (err, updateResult) {
+		if(err) {
+			cb(err);
+		} else {
+			cb(null);
+		}
 	});
 };
 
@@ -78,55 +98,56 @@ exports.offline = function(serialno, cb) {
 };
 
 exports.exist = function (serialno, cb) {
-	CenterBoxModel.find({"serialno": serialno}, function (err, docs) {
-		if (err) console.log(err);
-		else {
-			if (docs.length === 0) {
-				cb(false);
-			} else {
-				cb(true, docs[0]);
-			}
-		}
-	});
-};
-
-
-exports.save = function (serialno, code) {
-	CenterBoxModel.find({"serialno": serialno}, function (error, docs) {
-		if (error) {
-			console.log("CenterBoxModel.prototype.find: error : " + error);
+	CenterBoxModel.findOne({"serialno": serialno}, function (err, centerBox) {
+		if (err) {
+			cb(err);
 		} else {
-			console.log(JSON.stringify(docs));
-			if (docs.length === 0) {
-				// 数据库中不存在数据，插入数据
-				var CenterBoxEntity = new CenterBoxModel({
-					serialno: serialno,
-					code: code
-				});
-
-				CenterBoxEntity.save(function (error, doc) {
-					if (error) {
-						console.log("CenterBoxEntity.prototype.save: error : " + error);
-					} else {
-						var saveMsg = "新增centerBox保存成功";
-						console.log(saveMsg);
-						// sock.write(saveMsg);
-					}
-				});
+			if(centerBox) {
+				cb(null, true, centerBox);
 			} else {
-				// 数据库中已经有记录了，修改该上下线状态，修改最后登录时间
-				var conditions = {"serialno": serialno};
-				var update = {$set: {lastLoginTime: new Date(), 'code': code, isOnline:true}};
-				CenterBoxModel.update(conditions, update, function (error) {
-					if (error) {
-						console.log("CenterBoxModel.prototype.update: error : " + error);
-					} else {
-						var saveMsg = "更新最后登录时间成功";
-						console.log(saveMsg);
-						// sock.write(saveMsg);
-					}
-				});
+				cb(null, false);
 			}
 		}
 	});
 };
+
+
+// exports.save = function (serialno, code) {
+// 	CenterBoxModel.find({"serialno": serialno}, function (error, docs) {
+// 		if (error) {
+// 			console.log("CenterBoxModel.prototype.find: error : " + error);
+// 		} else {
+// 			console.log(JSON.stringify(docs));
+// 			if (docs.length === 0) {
+// 				// 数据库中不存在数据，插入数据
+// 				var CenterBoxEntity = new CenterBoxModel({
+// 					serialno: serialno,
+// 					code: code
+// 				});
+//
+// 				CenterBoxEntity.save(function (error, doc) {
+// 					if (error) {
+// 						console.log("CenterBoxEntity.prototype.save: error : " + error);
+// 					} else {
+// 						var saveMsg = "新增centerBox保存成功";
+// 						console.log(saveMsg);
+// 						// sock.write(saveMsg);
+// 					}
+// 				});
+// 			} else {
+// 				// 数据库中已经有记录了，修改该上下线状态，修改最后登录时间
+// 				var conditions = {"serialno": serialno};
+// 				var update = {$set: {lastLoginTime: new Date(), 'code': code, isOnline:true}};
+// 				CenterBoxModel.update(conditions, update, function (error) {
+// 					if (error) {
+// 						console.log("CenterBoxModel.prototype.update: error : " + error);
+// 					} else {
+// 						var saveMsg = "更新最后登录时间成功";
+// 						console.log(saveMsg);
+// 						// sock.write(saveMsg);
+// 					}
+// 				});
+// 			}
+// 		}
+// 	});
+// };
