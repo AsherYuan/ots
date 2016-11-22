@@ -20,7 +20,8 @@ var logger = require('./logger');
  * 服务器地址
  * @type {string}
  */
-var HOST = '121.40.172.233';
+// var HOST = '121.40.172.233';
+var HOST = '121.40.53.201';
 // var HOST = "127.0.0.1";
 var PORT = 1000;
 
@@ -75,6 +76,8 @@ server.on('connection', function (sock) {
 	 * 连接关闭事件，当close事件发生情况下，主动销毁client，并且移除在线列表
 	 */
 	sock.on('close', function() {
+		console.log("==========异常close发生=================");
+		OnlineClients.debug();
 		var client = OnlineClients.getByClientId(clientId);
 		if(!!client) {
 			CenterBoxModel.offline(client.serialno);
@@ -97,8 +100,11 @@ server.on('connection', function (sock) {
 	 * 异常发生事件
 	 */
 	sock.on('error', function (error) {
+		console.log("==========异常error发生=================");
+		OnlineClients.debug();
 		var client = OnlineClients.getByClientId(clientId);
-		if(client) {
+
+		if(!!client) {
 			CenterBoxModel.offline(client.serialno);
 			OnlineClients.remove(clientId);
 			/**
@@ -144,66 +150,72 @@ server.on('connection', function (sock) {
 			 * 如果不存在，不进行任何处理, 等待用户初始化
 			 * 如果存在，则对CODE进行处理
 			 */
-			CenterBoxModel.exist(protocol.data, function (err, flag, centerBox) {
-				// 已经存在了的情况下, 不存在的情况不作处理, 入口永远在用户扫描主控二维码
-				if(flag) {
-					console.log("centerBox.code" + centerBox.code);
-					// 主控存在，刷新主控的Code和当前ip地址以及端口
-					if(!!centerBox.code) {
-						CenterBoxModel.updateIp(serialno, ipAddress, port, function(err) {
-							if(err) {
-								logger.error("updateIp>>>>>");
-								logger.error(err);
-							} else {
-								var receiver = protocol.receiver;
-								logger.info("存在已经初始化过的主控(serialno:" + serialno + "), 其code为:" + centerBox.code);
-								var code = centerBox.code;
-								OnlineClients.update(clientId, code, serialno);
-
-								/**
-								 * 应答上线注册
-								 */
-								var answerBytes = Protocol.encode(receiver, '0000', '0006', '0001', '1000', code, protocol.checkCode);
-								sock.write(new Buffer(answerBytes));
-
-								/**
-								 * TODO pomelo端notify类型的请求不用返回
-								 */
-								Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
-									'command': '1000',
-									'serialno': serialno,
-									'receiver': code,
-									'ipAddress': ipAddress,
-									'port': port
-								});
-							}
-						});
-
-						// 主控存在，但是Code不存在，设置Code
-					} else {
-						CenterBoxModel.getMaxCode(function (newCode) {
-							logger.info("存在未初始化主控上线，分配自动计算获得的code：" + newCode);
-							OnlineClients.update(clientId, newCode, serialno);
-
-							// 保存到数据库
-							CenterBoxModel.updateIpAndCode(serialno, newCode, ipAddress, port, function(err) {
+			CenterBoxModel.exist(protocol.data, function (err, centerBox) {
+				if(err) {
+					// 处理数据库错误
+					console.log(err);
+				} else {
+					if(!!centerBox) {
+						// 主控存在，刷新主控的Code和当前ip地址以及端口
+						if(!!centerBox.code) {
+							CenterBoxModel.updateIp(serialno, ipAddress, port, function(err) {
 								if(err) {
+									logger.error("updateIp>>>>>");
 									logger.error(err);
 								} else {
-									// 应答主控注册
-									var answerBytes = Protocol.encode(protocol.receiver, '0000', '0006', '0001', '1000', newCode, protocol.checkCode);
+									var receiver = protocol.receiver;
+									logger.info("存在已经初始化过的主控(serialno:" + serialno + "), 其code为:" + centerBox.code);
+									var code = centerBox.code;
+									OnlineClients.update(clientId, code, serialno);
+
+									/**
+									 * 应答上线注册
+									 */
+									var answerBytes = Protocol.encode(receiver, '0000', '0006', '0001', '1000', code, protocol.checkCode);
 									sock.write(new Buffer(answerBytes));
 
+									/**
+									 * TODO pomelo端notify类型的请求不用返回
+									 */
 									Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
 										'command': '1000',
 										'serialno': serialno,
-										'receiver': newCode,
+										'receiver': code,
 										'ipAddress': ipAddress,
 										'port': port
 									});
 								}
 							});
-						});
+
+							// 主控存在，但是Code不存在，设置Code
+						} else {
+							// 主控不存在
+							CenterBoxModel.getMaxCode(function (newCode) {
+								logger.info("存在未初始化主控上线，分配自动计算获得的code：" + newCode);
+								OnlineClients.update(clientId, newCode, serialno);
+
+								// 保存到数据库
+								CenterBoxModel.updateIpAndCode(serialno, newCode, ipAddress, port, function(err) {
+									if(err) {
+										logger.error(err);
+									} else {
+										// 应答主控注册
+										var answerBytes = Protocol.encode(protocol.receiver, '0000', '0006', '0001', '1000', newCode, protocol.checkCode);
+										sock.write(new Buffer(answerBytes));
+
+										Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
+											'command': '1000',
+											'serialno': serialno,
+											'receiver': newCode,
+											'ipAddress': ipAddress,
+											'port': port
+										});
+									}
+								});
+							});
+						}
+					} else {
+						// 主控不存在，忽略
 					}
 				}
 			});
@@ -216,13 +228,13 @@ server.on('connection', function (sock) {
 			 */
 			var type = protocol.data.substring(2);
 			var code = protocol.data.substring(0, 2);
-
 			TerminalModel.count({centerBoxSerialno:serialno, code:code}, function(err, count) {
-				console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>..count: " + count);
+				if(err) {
+					console.log("终端查询报错::::" + JSON.stringify(err));
+				}
 				if(count === 0) {
 					console.log("serialno:" + serialno);
 					TerminalModel.findOne({centerBoxSerialno:serialno, code:null}, function(err, terminals) {
-						console.log("findOneTerminal:::" + JSON.stringify(terminals));
 						if(err) {
 							console.log(err);
 							logger.info(err);
@@ -286,26 +298,13 @@ server.on('connection', function (sock) {
 			});
 
 		} else if (protocol.command == '2002') {
-			// Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
-			// 	'command': '2002',
-			// 	'ipAddress': ipAddress,
-			// 	'data': protocol.data,
-			// 	'serialno': client.serialno,
-			// 	'port': port
-			// });
-
-
-			TerminalModel.find({}, function(err, terminals) {
+			TerminalModel.findOne({centerBoxSerialno:client.serialno, code:protocol.data.substring(0, 2)}, function(err, terminal) {
 				if(err) console.log(err);
 				else {
-					if(!!terminals) {
-						for(var i=0;i<terminals.length;i++) {
-							if(terminals[i].isOnline === true) {
-								if(protocol.data.substring(0, 2) == "01") {
-								} else {
-									terminalDownline(terminals[i]);
-								}
-							}
+					if(!!terminal) {
+						if(protocol.data.substring(2, 4) == "01") {
+						} else {
+							terminalDownline(terminal);
 						}
 					}
 				}
@@ -388,7 +387,7 @@ server.on("error", function (error) {
  */
 setInterval(function () {
 	OnlineClients.refreshClients();
-}, 30000);
+}, 10000);
 
 /**
  * 检查终端在线与否
@@ -399,19 +398,24 @@ setInterval(function() {
 	for(var i=0;i<clients.length; i++) {
 		var client = clients[i];
 		TerminalModel.find({centerBoxSerialno:client.serialno}, function(err, terminals) {
-			for(var j=0;j<terminals.length;j++) {
-				if(!!terminals[j].code) {
-					var answerBytes = Protocol.encode(client.code, '0000', '0005', '0001', '2002', terminals[j].code, '36FF');
-					logger.debug("请求终端状态:" + client.code + ":::" + JSON.stringify(terminals[j].code));
-					client.sock.write(new Buffer(answerBytes));
+			if(err) {
+				console.log("err::" + JSON.stringify(err));
+			} else {
+				for(var j=0;j<terminals.length;j++) {
+					if(!!terminals[j].code) {
+						var answerBytes = Protocol.encode(client.code, '0000', '0005', '0001', '2002', terminals[j].code, '36FF');
+						logger.debug("请求终端状态:" + client.code + ":::" + JSON.stringify(terminals[j].code));
+						client.sock.write(new Buffer(answerBytes));
+					}
 				}
 			}
 		});
 	}
-}, 30000);
+}, 10000);
 
 var terminalDownline = function(terminal) {
-	TerminalModel.update({_id:terminal._id}, {$set:{isOnline:false}}, function(err) {
+	// 永远在线
+	TerminalModel.update({_id:terminal._id}, {$set:{isOnline:true}}, function(err) {
 		if(err) console.log(err);
 		else {
 			Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {

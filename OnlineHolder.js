@@ -76,9 +76,10 @@ exports.exist = function (clientId) {
 /**
  * 心跳检测，并回收连接资源
  */
+// TODO 出现多个连接的过程中是否可能有BUG?
 exports.refreshClients = function () {
 	for (var i = 0; i < clients.length; i++) {
-		if (new Date().getTime() - clients[i].lasthbTime > 60000) {
+		if ((new Date().getTime() - clients[i].lasthbTime) > 60000) {
 			logger.error("主控(" + clients[i].clientId + "):心跳失败，断开连接，回收资源");
 			clients[i].sock.destroy();
 			// if(clients.length > 1) {
@@ -216,18 +217,24 @@ exports.setSerialno = function(clientId, serialno) {
 exports.remove = function (clientId) {
 	if(clients.length > 0) {
 		var serialno = "";
+		var needClear;
 		for (var i = 0; i < clients.length; i++) {
 			if (clients[i].clientId === clientId) {
 				serialno = clients[i].serialno;
 				if(!!clients[i].sock) {
 					clients[i].sock.destroy();
 				}
-				if(clients.length > 1) {
-					clients[i].splice(i, 1);
-				} else {
-					clients = [];
+				needClear = i;
+			}
+		}
+		if(!!needClear) {
+			var temp = [];
+			for(var j=0;j<clients.length;j++) {
+				if(j !== needClear) {
+					temp.push(clients[j]);
 				}
 			}
+			clients = temp;
 		}
 		return serialno;
 	}

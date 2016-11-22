@@ -7,7 +7,7 @@ var OnlineClients = require('./OnlineHolder.js');
 var MyProtocol = require('./protocol.js');
 var logger = require('./logger');
 
-var params = {host: "121.40.172.233", port: "3010"};
+var params = {host: "121.40.53.201", port: "3010"};
 var handshakeBuffer = {
 	'sys': {type: 'socket', version: '0.0.1'},
 	'user': {}

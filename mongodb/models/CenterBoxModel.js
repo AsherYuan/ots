@@ -102,11 +102,7 @@ exports.exist = function (serialno, cb) {
 		if (err) {
 			cb(err);
 		} else {
-			if(centerBox) {
-				cb(null, true, centerBox);
-			} else {
-				cb(null, false);
-			}
+			cb(null, centerBox);
 		}
 	});
 };
