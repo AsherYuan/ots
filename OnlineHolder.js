@@ -44,6 +44,7 @@ var Client = function (clientId, ipAddress, code, sock) {
  * @param sock
  */
 exports.add = function (clientId, ipAddress, code, sock) {
+	logger.error("调用了OnlineHolder.add");
 	var it = new Client(clientId, ipAddress, code, sock);
 	clients.push(it);
 };

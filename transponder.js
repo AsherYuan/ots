@@ -8,6 +8,7 @@ var MyProtocol = require('./protocol.js');
 var logger = require('./logger');
 
 var params = {host: "121.40.53.201", port: "3010"};
+// var params = {host: "121.40.172.233", port: "3010"};
 var handshakeBuffer = {
 	'sys': {type: 'socket', version: '0.0.1'},
 	'user': {}
@@ -68,7 +69,7 @@ socket.on('data', function (data) {
 			logger.warn("收到数据:serialno:" + serialno);
 			logger.warn("收到数据:data:" + data);
 		}
-
+		OnlineClients.debug();
 		var client = OnlineClients.getByClientId(ipAddress + ":" + port);
 		if(!!client && client.code) {
 			// 设备状态查询
@@ -81,14 +82,29 @@ socket.on('data', function (data) {
 			} else if (command == '2005') {
 				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0005', '0001', '2005', data, '36FF')));
 			} else if (command == '3000') {
-				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0030', '0001', '3000', data, '36FF')));
+				console.log("------------------------------------------------------------------------");
+				var hexs = data.split(" ");
+				var count = 0;
+				for(var i=0;i<hexs.length;i++) {
+					if(hexs[i] !== "") {
+						count ++;
+					}
+				}
+				count += 4;
+				console.log("count:" + count);
+				var countHex = count.toString(16);
+				console.log("countHex:" + countHex);
+				var length = "00" + countHex;
+				console.log("length:" + length);
+
+
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', length, '0001', '3000', data, '36FF')));
 			} else if (command == '3007') {
 				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0008', '0001', '3007', data, '36FF')));
 			} else if (command == '3008') {
-				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0007', '0001', '3008', data, '36FF')));
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0007', '0001', '32008', data, '36FF')));
 			}
 		}
-
 	}
 	if (da.type == Package.TYPE_HEARTBEAT) {
 		/**

@@ -58,7 +58,15 @@ exports.encode = function(sender, receiver, length, index, command, data, checkC
     if(!! data) {
         data = commandDecoder.trim(data);
     }
+    console.log("------------------sender:" + sender);
+    console.log("------------------receiver:" + receiver);
+    console.log("------------------length:" + length);
+    console.log("------------------index:" + index);
+    console.log("------------------command:" + command);
+    console.log("------------------data:" + data);
     var command = reverse(sender) + reverse(receiver) + reverse(length) + reverse(index) + reverse(command) + data + reverse(checkCode);
+    console.log("------------------final:" + command);
+
     return commandDecoder.str2Bytes(command);
 };
 
