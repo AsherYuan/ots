@@ -80,8 +80,8 @@ exports.exist = function (clientId) {
 // TODO 出现多个连接的过程中是否可能有BUG?
 exports.refreshClients = function () {
 	for (var i = 0; i < clients.length; i++) {
-		if ((new Date().getTime() - clients[i].lasthbTime) > 60000) {
-			logger.error("主控(" + clients[i].clientId + "):心跳失败，断开连接，回收资源");
+		if ((new Date().getTime() - clients[i].lasthbTime) > 90000) {
+			logger.error("主控(" + clients[i].clientId + "):心跳失败，断开连接，回收资源" + "___" + (new Date().getTime() - clients[i].lasthbTime));
 			clients[i].sock.destroy();
 			// if(clients.length > 1) {
 			// 	console.log(clients[i].clientId + ":" + clients[i].ipAddress + ":" + clients[i].code);

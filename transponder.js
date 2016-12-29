@@ -7,7 +7,8 @@ var OnlineClients = require('./OnlineHolder.js');
 var MyProtocol = require('./protocol.js');
 var logger = require('./logger');
 
-var params = {host: "121.40.53.201", port: "3010"};
+// var params = {host: "121.40.53.201", port: "3010"};
+var params = {host: "127.0.0.1", port: "3010"};
 // var params = {host: "121.40.172.233", port: "3010"};
 var handshakeBuffer = {
 	'sys': {type: 'socket', version: '0.0.1'},
@@ -102,7 +103,9 @@ socket.on('data', function (data) {
 			} else if (command == '3007') {
 				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0008', '0001', '3007', data, '36FF')));
 			} else if (command == '3008') {
-				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0007', '0001', '32008', data, '36FF')));
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0007', '0001', '3008', data, '36FF')));
+			} else if (command == "5000") {
+				client.sock.write(new Buffer(MyProtocol.encode(client.code, '0000', '0010', '0001', '5000', data, '36FF')));
 			}
 		}
 	}
@@ -137,7 +140,7 @@ socket.on('close', function () {
 });
 
 socket.sendMsg = function (route, obj) {
-	// logger.info("消息通知中央服务器:route:" + route + "\nparam:" + JSON.stringify(obj));
+	logger.info("消息通知中央服务器:route:" + route + "\nparam:" + JSON.stringify(obj));
 	var msg = Protocol.strencode(JSON.stringify(obj));
 	msg = Message.encode(0, Message.TYPE_REQUEST, 0, route, msg);
 	var packet = Package.encode(Package.TYPE_DATA, msg);

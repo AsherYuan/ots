@@ -155,6 +155,8 @@ server.on('connection', function (sock) {
 					// 处理数据库错误
 					console.log(err);
 				} else {
+					console.log("=============================================主控是否存在?======================");
+					console.log(JSON.stringify(centerBox));
 					if(!!centerBox) {
 						// 主控存在，刷新主控的Code和当前ip地址以及端口
 						if(!!centerBox.code) {
@@ -172,6 +174,7 @@ server.on('connection', function (sock) {
 									 * 应答上线注册
 									 */
 									var answerBytes = Protocol.encode(receiver, '0000', '0006', '0001', '1000', code, protocol.checkCode);
+									console.log("-----111------------------------------------应答上线注册----------------" + receiver);
 									sock.write(new Buffer(answerBytes));
 
 									/**
@@ -201,6 +204,7 @@ server.on('connection', function (sock) {
 									} else {
 										// 应答主控注册
 										var answerBytes = Protocol.encode(protocol.receiver, '0000', '0006', '0001', '1000', newCode, protocol.checkCode);
+										console.log("-----222------------------------------------应答上线注册----------------" + protocol.receiver);
 										sock.write(new Buffer(answerBytes));
 
 										Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
@@ -304,7 +308,7 @@ server.on('connection', function (sock) {
 					if(!!terminal) {
 						if(protocol.data.substring(2, 4) == "01") {
 						} else {
-							terminalDownline(terminal);
+							// terminalDownline(terminal);
 						}
 					}
 				}
@@ -393,36 +397,36 @@ setInterval(function () {
  * 检查终端在线与否
  * 每分钟检查一次，检查10分钟没有数据的终端视为下线了
  */
-setInterval(function() {
-	var clients = OnlineClients.getAll();
-	for(var i=0;i<clients.length; i++) {
-		var client = clients[i];
-		TerminalModel.find({centerBoxSerialno:client.serialno}, function(err, terminals) {
-			if(err) {
-				console.log("err::" + JSON.stringify(err));
-			} else {
-				for(var j=0;j<terminals.length;j++) {
-					if(!!terminals[j].code) {
-						var answerBytes = Protocol.encode(client.code, '0000', '0005', '0001', '2002', terminals[j].code, '36FF');
-						logger.debug("请求终端状态:" + client.code + ":::" + JSON.stringify(terminals[j].code));
-						client.sock.write(new Buffer(answerBytes));
-					}
-				}
-			}
-		});
-	}
-}, 10000);
-
-var terminalDownline = function(terminal) {
-	// 永远在线
-	TerminalModel.update({_id:terminal._id}, {$set:{isOnline:true}}, function(err) {
-		if(err) console.log(err);
-		else {
-			Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
-				'command': '998',
-				'serialno': terminal.centerBoxSerialno,
-				'code': terminal.code
-			});
-		}
-	});
-};
+// setInterval(function() {
+// 	var clients = OnlineClients.getAll();
+// 	for(var i=0;i<clients.length; i++) {
+// 		var client = clients[i];
+// 		TerminalModel.find({centerBoxSerialno:client.serialno}, function(err, terminals) {
+// 			if(err) {
+// 				console.log("err::" + JSON.stringify(err));
+// 			} else {
+// 				for(var j=0;j<terminals.length;j++) {
+// 					if(!!terminals[j].code) {
+// 						var answerBytes = Protocol.encode(client.code, '0000', '0005', '0001', '2002', terminals[j].code, '36FF');
+// 						logger.debug("请求终端状态:" + client.code + ":::" + JSON.stringify(terminals[j].code));
+// 						client.sock.write(new Buffer(answerBytes));
+// 					}
+// 				}
+// 			}
+// 		});
+// 	}
+// }, 10000);
+//
+// var terminalDownline = function(terminal) {
+// 	// 永远在线
+// 	TerminalModel.update({_id:terminal._id}, {$set:{isOnline:true}}, function(err) {
+// 		if(err) console.log(err);
+// 		else {
+// 			Transponder.socket.sendMsg('connector.entryHandler.socketMsg', {
+// 				'command': '998',
+// 				'serialno': terminal.centerBoxSerialno,
+// 				'code': terminal.code
+// 			});
+// 		}
+// 	});
+// };
